@@ -47,7 +47,15 @@ Build a **standalone** app (no Python install required) and a download-ready `.d
 ./scripts/build_release.sh
 ```
 
-Output: `dist/MIK-to-Rekordbox.dmg` — upload/share that file. Recipients drag the app to Applications.
+Output: `dist/MIK-to-Rekordbox.dmg` — upload/share that file.
+
+**For people downloading the DMG** (no Terminal, no symlink required):
+
+1. Open `MIK-to-Rekordbox.dmg`
+2. Double-click **Install.command** (or drag the app to **Applications**)
+3. Launch **MIK to Rekordbox** from Applications
+
+Optional: **Add CLI command.command** creates `/usr/local/bin/mik-sync` → the installed app (a symlink for Terminal users).
 
 The DMG is built for your Mac’s CPU (Apple Silicon or Intel). Build on the architecture you want to support, or build both and ship two DMGs.
 

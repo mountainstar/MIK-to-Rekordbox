@@ -3,11 +3,17 @@ MIK to Rekordbox
 
 Sync Mixed In Key playlists into Rekordbox (track order preserved).
 
-Install
--------
-1. Drag "MIK to Rekordbox.app" onto the Applications folder shortcut.
-2. Open Applications and launch MIK to Rekordbox.
-3. If macOS blocks the app: right-click → Open → Open (first time only).
+Install (pick one)
+------------------
+Easy: double-click **Install.command** on this disk.
+
+Or: drag **MIK to Rekordbox.app** onto the **Applications** folder shortcut.
+
+Then open Applications and launch MIK to Rekordbox.
+If macOS blocks the app: right-click → Open → Open (first time only).
+
+Optional CLI: after installing, double-click **Add CLI command.command**
+to add a `mik-sync` command in Terminal (symlink in /usr/local/bin).
 
 Before syncing (database method — recommended)
 ----------------------------------------------

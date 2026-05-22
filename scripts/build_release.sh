@@ -49,6 +49,9 @@ mkdir -p "$STAGING"
 cp -R "$DIST_APP" "$STAGING/"
 ln -sf /Applications "$STAGING/Applications"
 cp "$ROOT/packaging/dmg/README.txt" "$STAGING/README.txt"
+cp "$ROOT/packaging/dmg/Install.command" "$STAGING/Install.command"
+cp "$ROOT/packaging/dmg/Add CLI command.command" "$STAGING/Add CLI command.command"
+chmod +x "$STAGING/Install.command" "$STAGING/Add CLI command.command"
 
 rm -f "$DMG_PATH"
 hdiutil create \
