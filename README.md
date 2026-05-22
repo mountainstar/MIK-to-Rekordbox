@@ -41,23 +41,35 @@ The app remembers where the project lives. If you move the `mik-to-rekordbox` fo
 
 ### Distributable DMG (for other Macs)
 
-Build a **standalone** app (no Python install required) and a download-ready `.dmg`:
+**Download (recommended):** [GitHub Releases](https://github.com/mountainstar/MIK-to-Rekordbox/releases)
+
+- **Apple Silicon:** `MIK-to-Rekordbox-arm64.dmg`
+- **Intel Mac:** `MIK-to-Rekordbox-x86_64.dmg`
+
+**Publish a new release** (builds both DMGs and uploads them automatically):
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+That triggers the [Release workflow](.github/workflows/release.yml). You can also run it manually from the Actions tab (**workflow_dispatch** builds DMGs as artifacts only; tag push creates the GitHub Release).
+
+**Build locally** (optional):
 
 ```bash
 ./scripts/build_release.sh
 ```
 
-Output: `dist/MIK-to-Rekordbox.dmg` — upload/share that file.
+Output: `dist/MIK-to-Rekordbox.dmg`
 
 **For people downloading the DMG** (no Terminal, no symlink required):
 
-1. Open `MIK-to-Rekordbox.dmg`
+1. Open the DMG for their Mac type (arm64 vs x86_64)
 2. Double-click **Install.command** (or drag the app to **Applications**)
 3. Launch **MIK to Rekordbox** from Applications
 
 Optional: **Add CLI command.command** creates `/usr/local/bin/mik-sync` → the installed app (a symlink for Terminal users).
-
-The DMG is built for your Mac’s CPU (Apple Silicon or Intel). Build on the architecture you want to support, or build both and ship two DMGs.
 
 ### GUI (terminal)
 
