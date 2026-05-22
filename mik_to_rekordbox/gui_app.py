@@ -39,7 +39,7 @@ def _rekordbox_is_running() -> bool:
 class MikSyncApp(tk.Tk):
     def __init__(self) -> None:
         super().__init__()
-        self.title("MIK → Rekordbox")
+        self.title("MIK to Rekordbox")
         self.minsize(720, 520)
         self._rows: list[PlaylistRow] = []
         self._log_queue: queue.Queue[str] = queue.Queue()
@@ -293,5 +293,8 @@ class MikSyncApp(tk.Tk):
 
 
 def run() -> None:
+    from .macos_ui import set_macos_app_name
+
+    set_macos_app_name()
     app = MikSyncApp()
     app.mainloop()

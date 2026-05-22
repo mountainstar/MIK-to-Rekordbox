@@ -17,6 +17,8 @@ hidden = [
     "pyrekordbox.db6.registry",
     "pyrekordbox.config",
     "sqlcipher3",
+    "Foundation",
+    "AppKit",
 ]
 
 a = Analysis(

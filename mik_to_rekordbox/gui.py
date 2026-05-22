@@ -18,6 +18,10 @@ def main() -> None:
         )
         raise SystemExit(1) from exc
 
+    from .macos_ui import set_macos_app_name
+
+    set_macos_app_name()
+
     from .gui_app import run
 
     run()
