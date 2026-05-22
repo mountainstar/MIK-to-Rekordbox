@@ -85,10 +85,13 @@ If you just created or renamed a playlist in Mixed In Key and it does not appear
 ```
 
 3. In **Rekordbox**:
+   - **File → Export Collection in XML format** first (refreshes track list for matching)
    - **Preferences → Advanced** → set XML import path to `~/Documents/rekordbox/rekordbox_mik_sync.xml`
    - Click the **XML refresh** button in the left tree
    - Open **MIK Sync → your playlist**
    - Right-click → **Import Playlist**
+
+The sync file is rebuilt from your latest export each time: deleted MIK playlists are removed from **MIK Sync**, and only current MIK playlists appear. Use **XML** as the sync method in the GUI (not Database) for this workflow.
 
 ### Sync directly to `master.db` (advanced)
 

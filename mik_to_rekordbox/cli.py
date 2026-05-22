@@ -8,8 +8,8 @@ from pathlib import Path
 
 from .mik_reader import DEFAULT_MIK_DB, MikReader
 from .reporting import format_sync_report
-from .sync_db import sync_playlist_to_db
-from .sync_xml import DEFAULT_XML, sync_playlist_to_xml
+from .sync_db import MIK_SYNC_FOLDER, sync_playlist_to_db
+from .sync_xml import DEFAULT_XML, sync_playlist_to_xml, sync_playlists_to_xml
 
 DEFAULT_OUTPUT_XML = Path.home() / "Documents/rekordbox/rekordbox_mik_sync.xml"
 
@@ -48,23 +48,27 @@ def cmd_sync(args: argparse.Namespace) -> int:
         return 1
 
     exit_code = 0
-    for name in names:
-        tracks = reader.get_playlist_tracks(name)
-        if args.dry_run:
+    if args.dry_run:
+        for name in names:
+            tracks = reader.get_playlist_tracks(name)
             print(f"{name}: {len(tracks.paths)} tracks in MIK")
-            continue
-
-        if args.method == "xml":
-            report = sync_playlist_to_xml(
-                tracks,
-                xml_path=args.xml,
-                parent_folder=args.parent_folder,
-                replace_existing=not args.keep_existing,
-                allow_basename_fallback=args.basename_fallback,
-                output_path=args.output,
-            )
+    elif args.method == "xml":
+        reports = sync_playlists_to_xml(
+            names,
+            xml_path=args.xml,
+            parent_folder=args.parent_folder,
+            replace_existing=not args.keep_existing,
+            allow_basename_fallback=args.basename_fallback,
+            output_path=args.output,
+            reader=reader,
+        )
+        for report in reports:
             code = _print_report(report, method="rekordbox XML")
-        else:
+            exit_code = max(exit_code, code)
+            print()
+    else:
+        for name in names:
+            tracks = reader.get_playlist_tracks(name)
             report = sync_playlist_to_db(
                 tracks,
                 parent_folder=args.parent_folder,
@@ -74,8 +78,8 @@ def cmd_sync(args: argparse.Namespace) -> int:
                 commit=not args.no_commit,
             )
             code = _print_report(report, method="rekordbox database")
-        exit_code = max(exit_code, code)
-        print()
+            exit_code = max(exit_code, code)
+            print()
 
     if args.dry_run:
         print("Dry run only — no files were modified.")

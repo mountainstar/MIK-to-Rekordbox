@@ -12,7 +12,7 @@ from tkinter import messagebox, ttk
 from .mik_reader import DEFAULT_MIK_DB, MikReader
 from .reporting import format_sync_report
 from .sync_db import MIK_SYNC_FOLDER, sync_playlist_to_db
-from .sync_xml import DEFAULT_XML, sync_playlist_to_xml
+from .sync_xml import DEFAULT_XML, sync_playlists_to_xml
 
 DEFAULT_OUTPUT_XML = Path.home() / "Documents/rekordbox/rekordbox_mik_sync.xml"
 
@@ -245,19 +245,27 @@ class MikSyncApp(tk.Tk):
         exit_code = 0
         try:
             reader = MikReader(DEFAULT_MIK_DB)
-            for name in names:
-                self._log_queue.put(f"Syncing {name!r}...")
-                tracks = reader.get_playlist_tracks(name)
-                if method == "xml":
-                    report = sync_playlist_to_xml(
-                        tracks,
-                        xml_path=DEFAULT_XML,
-                        parent_folder=parent_folder,
-                        replace_existing=not self._keep.get(),
-                        allow_basename_fallback=self._basename.get(),
-                        output_path=DEFAULT_OUTPUT_XML,
-                    )
-                else:
+            if method == "xml":
+                self._log_queue.put(f"Syncing {len(names)} playlist(s) to XML ...")
+                reports = sync_playlists_to_xml(
+                    names,
+                    xml_path=DEFAULT_XML,
+                    parent_folder=parent_folder,
+                    replace_existing=not self._keep.get(),
+                    allow_basename_fallback=self._basename.get(),
+                    output_path=DEFAULT_OUTPUT_XML,
+                    reader=reader,
+                )
+                for report in reports:
+                    lines, code = format_sync_report(report, method=method_label)
+                    for line in lines:
+                        self._log_queue.put(line)
+                    exit_code = max(exit_code, code)
+                    self._log_queue.put("")
+            else:
+                for name in names:
+                    self._log_queue.put(f"Syncing {name!r}...")
+                    tracks = reader.get_playlist_tracks(name)
                     report = sync_playlist_to_db(
                         tracks,
                         parent_folder=parent_folder,
@@ -265,11 +273,11 @@ class MikSyncApp(tk.Tk):
                         allow_basename_fallback=self._basename.get(),
                         restore_hidden=self._restore.get(),
                     )
-                lines, code = format_sync_report(report, method=method_label)
-                for line in lines:
-                    self._log_queue.put(line)
-                exit_code = max(exit_code, code)
-                self._log_queue.put("")
+                    lines, code = format_sync_report(report, method=method_label)
+                    for line in lines:
+                        self._log_queue.put(line)
+                    exit_code = max(exit_code, code)
+                    self._log_queue.put("")
         except Exception as exc:
             self._log_queue.put(f"ERROR: {exc}")
             exit_code = 1
