@@ -7,8 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from .paths import extract_mik_path
-
-DEFAULT_MIK_DB = Path.home() / "Library/Application Support/Mixedinkey/Collection11.mikdb"
+from .platform_paths import DEFAULT_MIK_DB
 
 
 @dataclass(frozen=True)

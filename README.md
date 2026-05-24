@@ -6,16 +6,27 @@ Mixed In Key stores playlists in `Collection11.mikdb` (SQLite). This tool reads 
 
 ## Requirements
 
-- macOS (tested with MIK 11 + Rekordbox 7)
-- Python 3.11+
+- **macOS** 12+ or **Windows** 10+ (tested with MIK 11 + Rekordbox 7)
+- Python 3.11+ (for development; end users can use the release downloads)
 - Tracks must already exist in your Rekordbox library (same files MIK analyzed)
 
 ## Setup
+
+**macOS / Linux:**
 
 ```bash
 cd ~/Documents/mik-to-rekordbox
 python3 -m venv .venv
 source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+**Windows (PowerShell):**
+
+```powershell
+cd $env:USERPROFILE\Documents\mik-to-rekordbox
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 ```
 
@@ -39,37 +50,42 @@ Then open from Applications or Spotlight, and optionally **Keep in Dock** (right
 
 The app remembers where the project lives. If you move the `mik-to-rekordbox` folder, run `build_mac_app.sh` again.
 
-### Distributable DMG (for other Macs)
+### Download (recommended)
 
-**Download (recommended):** [GitHub Releases](https://github.com/mountainstar/MIK-to-Rekordbox/releases)
+**[GitHub Releases](https://github.com/mountainstar/MIK-to-Rekordbox/releases)**
 
-- **Apple Silicon:** `MIK-to-Rekordbox-arm64.dmg`
-- **Intel Mac:** `MIK-to-Rekordbox-x86_64.dmg`
+| Platform | File |
+|----------|------|
+| Apple Silicon Mac | `MIK-to-Rekordbox-arm64.dmg` |
+| Intel Mac | `MIK-to-Rekordbox-x86_64.dmg` |
+| Windows 64-bit | `MIK-to-Rekordbox-win64.zip` (extract, run `MIK-to-Rekordbox.exe`) |
 
-**Publish a new release** (builds both DMGs and uploads them automatically):
+**macOS:** open the DMG → double-click **Install.command** (or drag the app to **Applications**).
+
+**Windows:** extract the zip → run **MIK-to-Rekordbox.exe** (allow through SmartScreen on first launch if prompted).
+
+### Publish a new release
+
+Pushing a version tag builds macOS DMGs + Windows zip and uploads them automatically:
 
 ```bash
 git tag v1.0.0
 git push origin v1.0.0
 ```
 
-That triggers the [Release workflow](.github/workflows/release.yml). You can also run it manually from the Actions tab (**workflow_dispatch** builds DMGs as artifacts only; tag push creates the GitHub Release).
+That triggers the [Release workflow](.github/workflows/release.yml). Manual runs from the Actions tab build artifacts only; tag push creates the GitHub Release.
 
 **Build locally** (optional):
 
 ```bash
-./scripts/build_release.sh
+./scripts/build_release.sh          # macOS → dist/MIK-to-Rekordbox.dmg
 ```
 
-Output: `dist/MIK-to-Rekordbox.dmg`
+```powershell
+.\scripts\build_release_win.ps1     # Windows → dist\MIK-to-Rekordbox-win64.zip
+```
 
-**For people downloading the DMG** (no Terminal, no symlink required):
-
-1. Open the DMG for their Mac type (arm64 vs x86_64)
-2. Double-click **Install.command** (or drag the app to **Applications**)
-3. Launch **MIK to Rekordbox** from Applications
-
-Optional: **Add CLI command.command** creates `/usr/local/bin/mik-sync` → the installed app (a symlink for Terminal users).
+**macOS optional:** **Add CLI command.command** in the DMG creates `/usr/local/bin/mik-sync`.
 
 ### GUI (terminal)
 
@@ -79,7 +95,7 @@ Optional: **Add CLI command.command** creates `/usr/local/bin/mik-sync` → the 
 
 Or: `.venv/bin/python mik_sync.py gui`
 
-Select MIK playlists, choose **Database (recommended)**, quit Rekordbox (Cmd+Q), then click **Sync selected**.
+Select MIK playlists, choose **Database (recommended)**, fully quit Rekordbox, then click **Sync selected**.
 
 If the GUI fails to start with a `tkinter` / `_tkinter` error (common with Homebrew Python):
 
@@ -115,7 +131,7 @@ The sync file is rebuilt from your latest export each time: deleted MIK playlist
 
 ### Sync directly to `master.db` (advanced)
 
-Close Rekordbox completely (**Cmd+Q** — the app must not be running), then:
+Close Rekordbox completely (the app must not be running), then:
 
 ```bash
 .venv/bin/python mik_sync.py sync "05/19/2026" --method db --basename-fallback
@@ -137,7 +153,7 @@ Reopen Rekordbox. Playlists appear under **MIK Sync** in your tree.
 
 ## How matching works
 
-1. Read ordered file paths from MIK (`Z_1SONGS` + macOS bookmark blobs)
+1. Read ordered file paths from MIK (`Z_1SONGS` + bookmark blobs)
 2. Normalize paths and look them up in Rekordbox (XML `Location` or DB `FolderPath`)
 3. Build the playlist with Rekordbox `TrackID`s in the same order
 
@@ -145,11 +161,13 @@ Unmatched files are listed at the end — usually means the track is not in your
 
 ## Paths (defaults)
 
-| Item | Location |
-|------|----------|
-| MIK database | `~/Library/Application Support/Mixedinkey/Collection11.mikdb` |
-| Rekordbox XML | `~/Documents/rekordbox/rekordbox.xml` |
-| Sync output XML | `~/Documents/rekordbox/rekordbox_mik_sync.xml` |
+| Item | macOS | Windows |
+|------|-------|---------|
+| MIK database | `~/Library/Application Support/Mixedinkey/Collection11.mikdb` | `%LOCALAPPDATA%\Mixedinkey\Collection11.mikdb` (also checks `Mixed In Key` folders) |
+| Rekordbox XML | `~/Documents/rekordbox/rekordbox.xml` | `%USERPROFILE%\Documents\rekordbox\rekordbox.xml` |
+| Sync output XML | `~/Documents/rekordbox/rekordbox_mik_sync.xml` | `%USERPROFILE%\Documents\rekordbox\rekordbox_mik_sync.xml` |
+
+Override with `--mik-db` if your MIK database is in a custom location.
 
 ## Note on MIK cue points
 

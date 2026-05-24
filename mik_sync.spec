@@ -1,5 +1,5 @@
-# PyInstaller spec for distributable macOS app.
-# Build: .venv/bin/pyinstaller mik_sync.spec
+# PyInstaller spec for distributable app (macOS .app or Windows .exe).
+# Build: pyinstaller mik_sync.spec
 
 import sys
 from pathlib import Path
@@ -17,9 +17,9 @@ hidden = [
     "pyrekordbox.db6.registry",
     "pyrekordbox.config",
     "sqlcipher3",
-    "Foundation",
-    "AppKit",
 ]
+if sys.platform == "darwin":
+    hidden.extend(["Foundation", "AppKit"])
 
 a = Analysis(
     [str(root / "mik_sync_gui.py")],
@@ -39,46 +39,68 @@ a = Analysis(
 
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 
-exe = EXE(
-    pyz,
-    a.scripts,
-    [],
-    exclude_binaries=True,
-    name="MIK to Rekordbox",
-    debug=False,
-    bootloader_ignore_signals=False,
-    strip=False,
-    upx=False,
-    console=False,
-    disable_windowed_traceback=False,
-    argv_emulation=False,
-    target_arch=None,
-    codesign_identity=None,
-    entitlements_file=None,
-)
+if sys.platform == "darwin":
+    exe = EXE(
+        pyz,
+        a.scripts,
+        [],
+        exclude_binaries=True,
+        name="MIK to Rekordbox",
+        debug=False,
+        bootloader_ignore_signals=False,
+        strip=False,
+        upx=False,
+        console=False,
+        disable_windowed_traceback=False,
+        argv_emulation=False,
+        target_arch=None,
+        codesign_identity=None,
+        entitlements_file=None,
+    )
 
-coll = COLLECT(
-    exe,
-    a.binaries,
-    a.zipfiles,
-    a.datas,
-    strip=False,
-    upx=False,
-    upx_exclude=[],
-    name="MIK to Rekordbox",
-)
+    coll = COLLECT(
+        exe,
+        a.binaries,
+        a.zipfiles,
+        a.datas,
+        strip=False,
+        upx=False,
+        upx_exclude=[],
+        name="MIK to Rekordbox",
+    )
 
-app = BUNDLE(
-    coll,
-    name="MIK to Rekordbox.app",
-    icon=None,
-    bundle_identifier="com.mik-to-rekordbox.app",
-    info_plist={
-        "CFBundleName": "MIK to Rekordbox",
-        "CFBundleDisplayName": "MIK to Rekordbox",
-        "CFBundleShortVersionString": "1.0.0",
-        "CFBundleVersion": "1",
-        "NSHighResolutionCapable": True,
-        "LSMinimumSystemVersion": "12.0",
-    },
-)
+    app = BUNDLE(
+        coll,
+        name="MIK to Rekordbox.app",
+        icon=None,
+        bundle_identifier="com.mik-to-rekordbox.app",
+        info_plist={
+            "CFBundleName": "MIK to Rekordbox",
+            "CFBundleDisplayName": "MIK to Rekordbox",
+            "CFBundleShortVersionString": "1.0.0",
+            "CFBundleVersion": "1",
+            "NSHighResolutionCapable": True,
+            "LSMinimumSystemVersion": "12.0",
+        },
+    )
+else:
+    exe = EXE(
+        pyz,
+        a.scripts,
+        a.binaries,
+        a.zipfiles,
+        a.datas,
+        [],
+        name="MIK-to-Rekordbox",
+        debug=False,
+        bootloader_ignore_signals=False,
+        strip=False,
+        upx=False,
+        console=False,
+        disable_windowed_traceback=False,
+        argv_emulation=False,
+        target_arch=None,
+        codesign_identity=None,
+        entitlements_file=None,
+        onefile=True,
+    )

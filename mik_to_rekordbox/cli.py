@@ -9,9 +9,10 @@ from pathlib import Path
 from .mik_reader import DEFAULT_MIK_DB, MikReader
 from .reporting import format_sync_report
 from .sync_db import MIK_SYNC_FOLDER, sync_playlist_to_db
+from .platform_paths import default_output_xml
 from .sync_xml import DEFAULT_XML, sync_playlist_to_xml, sync_playlists_to_xml
 
-DEFAULT_OUTPUT_XML = Path.home() / "Documents/rekordbox/rekordbox_mik_sync.xml"
+DEFAULT_OUTPUT_XML = default_output_xml()
 
 
 def _print_report(report, *, method: str) -> int:

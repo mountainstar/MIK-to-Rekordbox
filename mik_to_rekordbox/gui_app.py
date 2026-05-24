@@ -10,11 +10,12 @@ from pathlib import Path
 from tkinter import messagebox, ttk
 
 from .mik_reader import DEFAULT_MIK_DB, MikReader
+from .platform_paths import default_output_xml, rekordbox_quit_hint
 from .reporting import format_sync_report
 from .sync_db import MIK_SYNC_FOLDER, sync_playlist_to_db
 from .sync_xml import DEFAULT_XML, sync_playlists_to_xml
 
-DEFAULT_OUTPUT_XML = Path.home() / "Documents/rekordbox/rekordbox_mik_sync.xml"
+DEFAULT_OUTPUT_XML = default_output_xml()
 
 
 @dataclass(frozen=True)
@@ -133,7 +134,7 @@ class MikSyncApp(tk.Tk):
         )
 
         hint = (
-            "Database sync: quit Rekordbox (Cmd+Q) before syncing.\n"
+            f"Database sync: {rekordbox_quit_hint()} before syncing.\n"
             "XML sync: export collection XML from Rekordbox first."
         )
         ttk.Label(opts, text=hint, wraplength=280, foreground="#555").grid(
@@ -225,7 +226,7 @@ class MikSyncApp(tk.Tk):
         if self._method.get() == "db" and _rekordbox_is_running():
             if not messagebox.askyesno(
                 "Rekordbox is running",
-                "Database sync requires Rekordbox to be fully quit (Cmd+Q).\n\n"
+                f"Database sync requires you to {rekordbox_quit_hint()}.\n\n"
                 "Continue anyway? (commit will fail if Rekordbox is still open.)",
             ):
                 return

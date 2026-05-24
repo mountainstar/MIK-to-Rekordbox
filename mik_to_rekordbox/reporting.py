@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from .platform_paths import rekordbox_quit_hint
 from .sync_db import MIK_SYNC_FOLDER
 
 
@@ -60,7 +61,7 @@ def format_sync_report(report, *, method: str) -> tuple[list[str], int]:
                     "Quit Rekordbox fully and re-run sync."
                 )
         lines.append(
-            "Rekordbox database updated. Quit Rekordbox (Cmd+Q), reopen it, "
+            f"Rekordbox database updated. {rekordbox_quit_hint().capitalize()}, reopen it, "
             "then open the playlist under MIK Sync."
         )
 

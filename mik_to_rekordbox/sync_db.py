@@ -11,6 +11,7 @@ from dataclasses import dataclass, field
 from pyrekordbox.db6 import tables
 
 from .matching import _is_deleted_content, build_location_index_from_db, match_paths
+from .paths import is_rekordbox_internal_path
 from .mik_reader import MikPlaylistTracks
 
 MIK_SYNC_FOLDER = "MIK Sync"
@@ -94,7 +95,9 @@ def _restore_hidden_content(db, content, mik_path: str) -> bool:
         return False
     folder = getattr(content, "FolderPath", None) or ""
     check_paths = [folder, mik_path]
-    if not any(p and not p.startswith("/contents") and os.path.exists(p) for p in check_paths):
+    if not any(
+        p and not is_rekordbox_internal_path(p) and os.path.exists(p) for p in check_paths
+    ):
         return False
     content.rb_local_deleted = 0
     content.updated_at = datetime.datetime.now()

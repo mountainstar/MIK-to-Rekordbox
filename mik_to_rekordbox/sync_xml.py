@@ -9,9 +9,10 @@ from pyrekordbox import RekordboxXml
 
 from .matching import build_location_index_from_xml, match_paths
 from .mik_reader import MikPlaylistTracks, MikReader
+from .platform_paths import default_output_xml, default_rekordbox_xml
 
-DEFAULT_XML = Path.home() / "Documents/rekordbox/rekordbox.xml"
-DEFAULT_OUTPUT_XML = Path.home() / "Documents/rekordbox/rekordbox_mik_sync.xml"
+DEFAULT_XML = default_rekordbox_xml()
+DEFAULT_OUTPUT_XML = default_output_xml()
 MIK_SYNC_FOLDER = "MIK Sync"
 
 
