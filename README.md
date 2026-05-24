@@ -211,3 +211,9 @@ Unmatched files are listed in the log — usually the track is not in your Rekor
 ## MIK cue points vs playlists
 
 **Mixed In Key → Export Cue Points → Rekordbox** maintains cue data in `rekordbox.xml`. This tool syncs **playlist order** from MIK crates, not cue points. You can use both workflows with different XML files.
+
+---
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
