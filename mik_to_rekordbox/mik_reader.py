@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import sqlite3
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from .paths import extract_mik_path
@@ -20,9 +20,30 @@ class MikPlaylist:
 
 
 @dataclass(frozen=True)
+class MikCue:
+    time_sec: float
+    energy_level: int | None = None
+    name: str | None = None
+
+
+@dataclass(frozen=True)
+class MikTrackMeta:
+    title: str | None = None
+    artist: str | None = None
+    album: str | None = None
+    genre: str | None = None
+    key: str | None = None
+    bpm: float | None = None
+    bitrate: int | None = None
+    sample_rate: int | None = None
+
+
+@dataclass(frozen=True)
 class MikPlaylistTracks:
     playlist: MikPlaylist
     paths: list[str]
+    metadata: dict[str, MikTrackMeta] = field(default_factory=dict)
+    cues: dict[str, list[MikCue]] = field(default_factory=dict)
 
 
 class MikReader:
@@ -92,7 +113,18 @@ class MikReader:
         with self._connect() as conn:
             rows = conn.execute(
                 """
-                SELECT s.ZBOOKMARKDATA
+                SELECT
+                    s.Z_PK,
+                    s.ZBOOKMARKDATA,
+                    s.ZNAME,
+                    s.ZARTIST,
+                    s.ZALBUM,
+                    s.ZGENRE,
+                    s.ZKEY,
+                    s.ZTAGKEY,
+                    s.ZTEMPO,
+                    s.ZBITRATE,
+                    s.ZSAMPLERATE
                 FROM Z_1SONGS j
                 JOIN ZSONG s ON j.Z_5SONGS = s.Z_PK
                 WHERE j.Z_1COLLECTIONS = ?
@@ -101,10 +133,55 @@ class MikReader:
                 (playlist.id,),
             ).fetchall()
 
+            song_ids = [row["Z_PK"] for row in rows]
+            cues_by_song: dict[int, list[MikCue]] = {sid: [] for sid in song_ids}
+            if song_ids:
+                placeholders = ",".join("?" * len(song_ids))
+                cue_rows = conn.execute(
+                    f"""
+                    SELECT ZSONG, ZTIME, ZENERGYLEVEL, ZNAME
+                    FROM ZCUEPOINT
+                    WHERE ZSONG IN ({placeholders})
+                    ORDER BY ZTIME
+                    """,
+                    song_ids,
+                ).fetchall()
+                for cue in cue_rows:
+                    sid = cue["ZSONG"]
+                    if sid is None or sid not in cues_by_song:
+                        continue
+                    energy = cue["ZENERGYLEVEL"]
+                    cues_by_song[sid].append(
+                        MikCue(
+                            time_sec=float(cue["ZTIME"] or 0.0),
+                            energy_level=int(energy) if energy is not None else None,
+                            name=cue["ZNAME"] or None,
+                        )
+                    )
+
         paths: list[str] = []
+        metadata: dict[str, MikTrackMeta] = {}
+        cues: dict[str, list[MikCue]] = {}
         for row in rows:
             path = extract_mik_path(row["ZBOOKMARKDATA"])
-            if path:
-                paths.append(path)
+            if not path:
+                continue
+            paths.append(path)
+            bpm = row["ZTEMPO"]
+            metadata[path] = MikTrackMeta(
+                title=row["ZNAME"] or None,
+                artist=row["ZARTIST"] or None,
+                album=row["ZALBUM"] or None,
+                genre=row["ZGENRE"] or None,
+                key=(row["ZKEY"] or row["ZTAGKEY"] or None),
+                bpm=float(bpm) if bpm is not None else None,
+                bitrate=int(row["ZBITRATE"]) if row["ZBITRATE"] is not None else None,
+                sample_rate=(
+                    int(row["ZSAMPLERATE"]) if row["ZSAMPLERATE"] is not None else None
+                ),
+            )
+            cues[path] = list(cues_by_song.get(row["Z_PK"], []))
 
-        return MikPlaylistTracks(playlist=playlist, paths=paths)
+        return MikPlaylistTracks(
+            playlist=playlist, paths=paths, metadata=metadata, cues=cues
+        )

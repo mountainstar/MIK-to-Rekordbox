@@ -3,8 +3,16 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
 
+from .import_missing import import_track_to_db, import_track_to_xml
 from .paths import basename_key, decode_rekordbox_location, normalize_path
+
+if TYPE_CHECKING:
+    from pyrekordbox import RekordboxXml
+    from pyrekordbox.db6.database import Rekordbox6Database
+
+    from .mik_reader import MikTrackMeta
 
 
 @dataclass
@@ -12,6 +20,8 @@ class MatchResult:
     track_ids: list[int]
     missing_paths: list[str] = field(default_factory=list)
     basename_matches: list[tuple[str, str]] = field(default_factory=list)
+    imported_paths: list[str] = field(default_factory=list)
+    resolved: list[tuple[str, int]] = field(default_factory=list)
 
 
 def build_location_index_from_xml(xml) -> dict[str, int]:
@@ -83,7 +93,10 @@ def match_paths(
     location_index: dict[str, int],
     *,
     allow_basename_fallback: bool = False,
-    db=None,
+    import_missing: bool = False,
+    db: Rekordbox6Database | None = None,
+    xml: RekordboxXml | None = None,
+    metadata: dict[str, MikTrackMeta] | None = None,
 ) -> MatchResult:
     """Resolve MIK paths to Rekordbox track/content IDs."""
     basename_index: dict[str, list[str]] = {}
@@ -94,28 +107,48 @@ def match_paths(
     track_ids: list[int] = []
     missing: list[str] = []
     basename_matches: list[tuple[str, str]] = []
+    imported_paths: list[str] = []
+    resolved: list[tuple[str, int]] = []
+    meta_map = metadata or {}
 
     for raw in paths:
         norm = normalize_path(raw)
         track_id = location_index.get(norm)
         if track_id is not None:
             track_ids.append(track_id)
+            resolved.append((raw, track_id))
             continue
 
         if allow_basename_fallback:
             key = basename_key(norm)
             if db is not None:
-                resolved = _best_content_for_basename(db, key)
-                if resolved is not None:
-                    cid, matched = resolved
+                resolved_base = _best_content_for_basename(db, key)
+                if resolved_base is not None:
+                    cid, matched = resolved_base
                     track_ids.append(cid)
+                    resolved.append((raw, cid))
                     basename_matches.append((raw, matched))
                     continue
             candidates = basename_index.get(key, [])
             if len(candidates) == 1:
                 matched = candidates[0]
-                track_ids.append(location_index[matched])
+                cid = location_index[matched]
+                track_ids.append(cid)
+                resolved.append((raw, cid))
                 basename_matches.append((raw, matched))
+                continue
+
+        if import_missing:
+            meta = meta_map.get(raw)
+            cid: int | None = None
+            if db is not None:
+                cid = import_track_to_db(db, raw, location_index, meta=meta)
+            elif xml is not None:
+                cid = import_track_to_xml(xml, raw, location_index, meta=meta)
+            if cid is not None:
+                track_ids.append(cid)
+                resolved.append((raw, cid))
+                imported_paths.append(raw)
                 continue
 
         missing.append(raw)
@@ -124,4 +157,6 @@ def match_paths(
         track_ids=track_ids,
         missing_paths=missing,
         basename_matches=basename_matches,
+        imported_paths=imported_paths,
+        resolved=resolved,
     )

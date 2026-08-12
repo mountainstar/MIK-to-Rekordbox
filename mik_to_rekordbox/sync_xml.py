@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from pyrekordbox import RekordboxXml
@@ -24,6 +24,7 @@ class XmlSyncReport:
     basename_matches: list[tuple[str, str]]
     created_playlist: bool
     output_path: Path
+    imported_paths: list[str] = field(default_factory=list)
 
 
 def _find_playlist_node(parent, name: str):
@@ -61,11 +62,16 @@ def _write_playlist_to_folder(
     *,
     allow_basename_fallback: bool,
     replace_existing: bool,
+    xml: RekordboxXml | None = None,
+    import_missing: bool = False,
 ) -> XmlSyncReport:
     match = match_paths(
         tracks.paths,
         location_index,
         allow_basename_fallback=allow_basename_fallback,
+        import_missing=import_missing,
+        xml=xml,
+        metadata=tracks.metadata,
     )
 
     playlist_name = tracks.playlist.name
@@ -87,6 +93,7 @@ def _write_playlist_to_folder(
         basename_matches=match.basename_matches,
         created_playlist=created,
         output_path=Path(),  # filled in by caller
+        imported_paths=match.imported_paths,
     )
 
 
@@ -104,6 +111,7 @@ def _rebuild_mik_sync_xml(
     parent_folder: str,
     replace_existing: bool,
     allow_basename_fallback: bool,
+    import_missing: bool = False,
     highlight_name: str | None = None,
 ) -> XmlSyncReport:
     """Rebuild the MIK Sync folder from all current MIK playlists.
@@ -124,6 +132,8 @@ def _rebuild_mik_sync_xml(
             location_index,
             allow_basename_fallback=allow_basename_fallback,
             replace_existing=replace_existing,
+            xml=source_xml,
+            import_missing=import_missing,
         )
         if highlight_name is None or tracks.playlist.name == highlight_name:
             highlight = report
@@ -140,6 +150,7 @@ def sync_playlist_to_xml(
     parent_folder: str | None = MIK_SYNC_FOLDER,
     replace_existing: bool = True,
     allow_basename_fallback: bool = False,
+    import_missing: bool = True,
     output_path: Path | str | None = None,
     reader: MikReader | None = None,
 ) -> XmlSyncReport:
@@ -165,6 +176,7 @@ def sync_playlist_to_xml(
             parent_folder=folder_name,
             replace_existing=replace_existing,
             allow_basename_fallback=allow_basename_fallback,
+            import_missing=import_missing,
             highlight_name=tracks.playlist.name,
         )
         report.output_path = destination
@@ -183,6 +195,8 @@ def sync_playlist_to_xml(
         location_index,
         allow_basename_fallback=allow_basename_fallback,
         replace_existing=replace_existing,
+        xml=source_xml,
+        import_missing=import_missing,
     )
     report.output_path = destination
     source_xml.save(str(destination))
@@ -196,6 +210,7 @@ def sync_playlists_to_xml(
     parent_folder: str | None = MIK_SYNC_FOLDER,
     replace_existing: bool = True,
     allow_basename_fallback: bool = False,
+    import_missing: bool = True,
     output_path: Path | str | None = None,
     reader: MikReader | None = None,
 ) -> list[XmlSyncReport]:
@@ -225,6 +240,8 @@ def sync_playlists_to_xml(
                 location_index,
                 allow_basename_fallback=allow_basename_fallback,
                 replace_existing=replace_existing,
+                xml=source_xml,
+                import_missing=import_missing,
             )
             report.output_path = destination
             if tracks.playlist.name.casefold() in wanted:
@@ -240,6 +257,7 @@ def sync_playlists_to_xml(
             parent_folder=parent_folder,
             replace_existing=replace_existing,
             allow_basename_fallback=allow_basename_fallback,
+            import_missing=import_missing,
             output_path=output_path,
             reader=mik_reader,
         )

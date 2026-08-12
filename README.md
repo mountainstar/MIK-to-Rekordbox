@@ -28,8 +28,9 @@ No Python install required for release builds.
 2. Click **Refresh** to load MIK playlists.
 3. Select one or more playlists.
 4. Choose **Database (recommended)**, enable **Match by filename** if your files moved between drives or cloud folders.
-5. **Fully quit Rekordbox** (macOS: Cmd+Q; Windows: close the app).
-6. Click **Sync selected**.
+5. Leave **Import tracks missing from Rekordbox** on to add songs that exist on disk but are not in your library yet.
+6. **Fully quit Rekordbox** (macOS: Cmd+Q; Windows: close the app).
+7. Click **Sync selected**.
 
 Reopen Rekordbox — playlists are under **MIK Sync**.
 
@@ -45,6 +46,8 @@ Writes directly to Rekordbox’s `master.db`. Fastest and keeps everything in on
 
 - **Rekordbox must be fully closed** before syncing.
 - Use **Match by filename if path differs** when MIK and Rekordbox store different paths for the same file (common with cloud libraries).
+- **Import tracks missing from Rekordbox** registers audio files on disk that are not in your library yet (DB and XML sync).
+- **Sync MIK cue points** (DB sync) copies Mixed In Key energy markers onto tracks that do not already have cues.
 - **Restore tracks Rekordbox marked missing** clears the “missing file” flag when the audio file still exists on disk.
 
 ### XML sync (alternative)
@@ -60,6 +63,23 @@ Use when you prefer not to touch the database, or for workflows that already rel
 
 Each XML sync rebuilds the whole **MIK Sync** folder from current MIK playlists (removed MIK playlists disappear from the sync file).
 
+### Stage missing (manual reimport)
+
+When you have removed tracks from Rekordbox but still have them in a MIK playlist, use **Stage missing** instead of (or before) Sync:
+
+1. Select the playlist(s).
+2. Click **Stage missing** and choose a destination folder.
+3. The app **copies** only tracks that are not in Rekordbox (and whose source files still exist on disk).
+4. Drag that folder into Rekordbox to reimport, analyze if prompted, then **Sync** the playlist to restore order under **MIK Sync**.
+
+This does **not** change Rekordbox by itself. **Import tracks missing from Rekordbox** (on Sync) adds files into the library automatically; **Stage missing** only gathers copies for you to import by hand.
+
+CLI:
+
+```bash
+python mik_sync.py stage "My Playlist" --dest ~/Music/MIK-Reimport --basename-fallback
+```
+
 ---
 
 ## Command line
@@ -72,6 +92,7 @@ After [development setup](#development-setup), with the virtual environment acti
 python mik_sync.py list
 python mik_sync.py sync "My Playlist" --method db --basename-fallback
 python mik_sync.py sync --all --method db --basename-fallback
+python mik_sync.py stage "My Playlist" --dest ~/Music/MIK-Reimport
 python mik_sync.py gui
 ```
 
@@ -80,6 +101,7 @@ python mik_sync.py gui
 ```powershell
 python mik_sync.py list
 python mik_sync.py sync "My Playlist" --method db --basename-fallback
+python mik_sync.py stage "My Playlist" --dest "$env:USERPROFILE\Music\MIK-Reimport"
 python mik_sync.py gui
 ```
 
@@ -90,6 +112,8 @@ python mik_sync.py gui
 | `--method xml\|db` | XML export or direct database write (CLI default: `xml`; GUI default: `db`) |
 | `--all` | Sync every MIK playlist |
 | `--basename-fallback` | Match by filename if full path fails |
+| `--no-import-missing` | Skip importing tracks not already in Rekordbox |
+| `--no-sync-cues` | DB only: skip copying MIK energy cue points |
 | `--mik-db PATH` | Custom path to `Collection11.mikdb` |
 | `--dry-run` | Preview track counts only |
 | `--no-restore-hidden` | DB only: skip clearing Rekordbox “missing” flag |
@@ -190,7 +214,7 @@ Override MIK location with `--mik-db` if needed.
 2. Normalize paths and look them up in Rekordbox (XML `Location` or DB `FolderPath`).
 3. Build the playlist with Rekordbox track IDs in the same order.
 
-Unmatched files are listed in the log — usually the track is not in your Rekordbox collection yet, or paths differ (try **basename fallback**).
+Unmatched files are listed in the log — usually the file is not on disk at the MIK path, or the format is unsupported. Enable **Import tracks missing from Rekordbox** to add files that exist on disk but are not in your library yet. If paths differ, try **basename fallback**.
 
 ---
 
@@ -202,6 +226,7 @@ Unmatched files are listed in the log — usually the track is not in your Rekor
 | `Matched: 4` but only 1 track in Rekordbox UI | DB sync with **restore missing** enabled; quit and reopen Rekordbox |
 | XML sync matches 0 tracks | Re-export full `rekordbox.xml` from Rekordbox first (export can be stale) |
 | Paths differ (cloud / moved files) | Enable **Match by filename** |
+| Track in MIK but not in Rekordbox | **Stage missing** (copy to a folder, drag into Rekordbox), or enable **Import tracks missing** on Sync |
 | DB sync fails | Ensure Rekordbox is fully quit, not just minimized |
 | Windows: app blocked | SmartScreen → **More info** → **Run anyway** (first launch) |
 | macOS: app blocked | Right-click app → **Open** → **Open** (first launch) |
@@ -210,7 +235,9 @@ Unmatched files are listed in the log — usually the track is not in your Rekor
 
 ## MIK cue points vs playlists
 
-**Mixed In Key → Export Cue Points → Rekordbox** maintains cue data in `rekordbox.xml`. This tool syncs **playlist order** from MIK crates, not cue points. You can use both workflows with different XML files.
+**Database sync** can copy MIK energy cue points into Rekordbox as memory cues (comments like `Energy 6`) for tracks that do not already have cues. Tracks that already have cues are left unchanged.
+
+**Mixed In Key → Export Cue Points → Rekordbox** is still useful if you want MIK’s full export (including hot cues). This tool focuses on playlist order plus filling missing memory cues on DB sync.
 
 ---
 

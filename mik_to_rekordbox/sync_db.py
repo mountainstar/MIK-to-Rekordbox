@@ -10,9 +10,10 @@ from dataclasses import dataclass, field
 
 from pyrekordbox.db6 import tables
 
+from .cue_sync import sync_cues_for_tracks
 from .matching import _is_deleted_content, build_location_index_from_db, match_paths
-from .paths import is_rekordbox_internal_path
 from .mik_reader import MikPlaylistTracks
+from .paths import is_rekordbox_internal_path
 
 MIK_SYNC_FOLDER = "MIK Sync"
 
@@ -39,6 +40,9 @@ class DbSyncReport:
     playlist_id: str
     tracks_in_db: int = 0
     restored_hidden: list[str] = field(default_factory=list)
+    imported_paths: list[str] = field(default_factory=list)
+    cues_written: int = 0
+    cues_skipped_existing: int = 0
 
 
 def _get_or_create_folder(db, name: str):
@@ -111,7 +115,9 @@ def sync_playlist_to_db(
     parent_folder: str | None = MIK_SYNC_FOLDER,
     replace_existing: bool = True,
     allow_basename_fallback: bool = False,
+    import_missing: bool = True,
     restore_hidden: bool = True,
+    sync_cues: bool = True,
     commit: bool = True,
 ) -> DbSyncReport:
     """Create or replace a Rekordbox playlist from MIK track order."""
@@ -125,7 +131,9 @@ def sync_playlist_to_db(
         tracks.paths,
         location_index,
         allow_basename_fallback=allow_basename_fallback,
+        import_missing=import_missing,
         db=db,
+        metadata=tracks.metadata,
     )
 
     parent = None
@@ -149,11 +157,24 @@ def sync_playlist_to_db(
     playlist.updated_at = now
 
     restored_hidden: list[str] = []
-    for mik_path, content_id in zip(tracks.paths, match.track_ids):
+    for mik_path, content_id in match.resolved:
         content = db.get_content(ID=content_id)
         if restore_hidden and _restore_hidden_content(db, content, mik_path):
             restored_hidden.append(mik_path)
         db.add_to_playlist(playlist, content)
+
+    cues_written = 0
+    cues_skipped = 0
+    if sync_cues and match.resolved:
+        for result in sync_cues_for_tracks(
+            db,
+            match.resolved,
+            tracks.cues,
+            only_if_empty=True,
+        ):
+            cues_written += result.cues_written
+            if result.skipped_existing:
+                cues_skipped += 1
 
     _ensure_playlist_in_xml(db, playlist)
     db.flush()
@@ -173,4 +194,7 @@ def sync_playlist_to_db(
         playlist_id=str(playlist.ID),
         tracks_in_db=tracks_in_db,
         restored_hidden=restored_hidden,
+        imported_paths=match.imported_paths,
+        cues_written=cues_written,
+        cues_skipped_existing=cues_skipped,
     )
